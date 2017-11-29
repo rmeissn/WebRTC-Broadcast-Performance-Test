@@ -29,7 +29,7 @@ class presentationBroadcast extends React.Component {
         this.pcConfig = {'iceServers': Microservices.webrtc.iceServers};
         this.room = this.props.currentRoute.query.room + '';//NOTE Error handling implemented in first lines of componentDidMount
         this.socket = undefined;
-        this.maxPeers = 100;
+        this.maxPeers = 50000;
 
         //******** SlideWiki specific variables ********
         this.eventForwarding = true;
@@ -37,6 +37,20 @@ class presentationBroadcast extends React.Component {
         this.lastRemoteSlide = this.iframesrc + '';
         this.currentSlide = this.iframesrc + '';
         this.peerNumber = -1;//used for peernames, will be incremented on each new peer
+
+        //******** Testing variables ********
+        this.isAudioEnabled = false;
+        this.numberOfInitialTimestamps = 70;
+        this.numberOfVolatileTimestamps = 20;
+        this.numberOfMeasurements = 100;
+        this.usedInitialTimestamps = 0;
+        this.timestamps = {};
+        this.runtime_one_command = 0;
+        this.InitialTimestamps = [];
+        this.isFirstPeer = false;
+        this.intervallId = 0;
+        this.peerModulo = 10;
+        this.counter = 0;
     }
 
     componentDidUpdate(prevProps, prevState){
@@ -85,14 +99,17 @@ class presentationBroadcast extends React.Component {
             });
             setmyID();
             $('#slidewikiPresentation').on('load', activateIframeListeners);
-            requestStreams({
-                audio: true,
-                // video: {
-                //   width: { min: 480, ideal: 720, max: 1920 },
-                //   height: { min: 360, ideal: 540, max: 1080 },
-                //   facingMode: "user"
-                // }
-            });
+            if (that.isAudioEnabled) {
+                requestStreams({
+                    audio: true,
+                    // video: {
+                    //   width: { min: 480, ideal: 720, max: 1920 },
+                    //   height: { min: 360, ideal: 540, max: 1080 },
+                    //   facingMode: "user"
+                    // }
+                });
+            } else
+              gotStream('');
         });
 
         that.socket.on('join', (room, socketID) => { //whole room recieves this, except for the peer that tries to join
@@ -327,7 +344,8 @@ class presentationBroadcast extends React.Component {
                 console.log('creating RTCPeerConnnection for', (that.isInitiator) ? 'initiator' : 'peer');
                 createPeerConnection(peerID);
                 if (that.isInitiator){
-                    that.localStream.getTracks().forEach((track) => that.pcs[peerID].RTCconnection.addTrack(track, that.localStream));
+                    if (that.isAudioEnabled)
+                        that.localStream.getTracks().forEach((track) => that.pcs[peerID].RTCconnection.addTrack(track, that.localStream));
                     doCall(peerID);
                 }
             }
@@ -461,9 +479,31 @@ class presentationBroadcast extends React.Component {
 
             channel.onopen = function() {
                 console.log('Data Channel opened');
-                if (that.isInitiator)
+                if (that.isInitiator){
                     sendStatusObject(peerID);
-                else
+                    let size = Object.keys(that.pcs).length;
+                    if (size === 1) {
+                        console.log('Starting to measure default delay');
+                        let intervallId = 0;
+                        function sendIt() {
+                            if (that.usedInitialTimestamps < that.numberOfInitialTimestamps) {
+                                that.usedInitialTimestamps++;
+                                sendRTCMessage('firsttimestamps', {timestamp: (new Date()).getTime(), usedInitialTimestamps: that.usedInitialTimestamps}, peerID);
+                            }
+                            else {
+                                console.log('Stop measuring default delay');
+                                clearInterval(intervallId);
+                            }
+                        }
+                        intervallId = window.setInterval(sendIt, 100);
+                    } else if (that.intervallId === 0 && size > 1) {
+                        that.intervallId = 1;
+                        function sendIt2() {
+                            sendRTCMessage('timestamp', {timestamp: (new Date()).getTime(), peerCount: Object.keys(that.pcs).length});
+                        }
+                        that.intervallId = window.setInterval(sendIt2, 100);
+                    }
+                } else
                     that.sendUsername();
             };
 
@@ -517,7 +557,8 @@ class presentationBroadcast extends React.Component {
 
         function setLocalAndSendMessage(peerID, sessionDescription) {
             // Set Opus as the preferred codec in SDP if Opus is present.
-            sessionDescription.sdp = preferOpus(sessionDescription.sdp);
+            if (that.isAudioEnabled)
+                sessionDescription.sdp = preferOpus(sessionDescription.sdp);
             that.pcs[peerID].RTCconnection.setLocalDescription(sessionDescription);
             sendMessage(sessionDescription.type, sessionDescription, peerID);
         }
@@ -628,10 +669,186 @@ class presentationBroadcast extends React.Component {
                         changeSlide(data.data.slide);
                     }
                     break;
+                case 'firsttimestamps':
+                    handleFirstTimestamp(data.data);
+                    break;
+                case 'timestamp':
+                    handleTimestamp(data.data);
+                    break;
+                case 'showResults':
+                    handleShowResults();
+                    break;
                 default:
 
             }
         }
+
+        function handleFirstTimestamp(data) {
+            if (data.usedInitialTimestamps > that.numberOfVolatileTimestamps)
+                that.InitialTimestamps.push((new Date()).getTime() - data.timestamp);
+                //that.runtime_one_command += (new Date()).getTime() - data.timestamp;
+
+            that.isFirstPeer = true;
+            that.forceUpdate();
+            if(data.usedInitialTimestamps === 1)
+                console.log('Starting to measure default delay with ', that.numberOfInitialTimestamps - that.numberOfVolatileTimestamps, ' timestamps');
+            if (data.usedInitialTimestamps === that.numberOfInitialTimestamps) {
+                console.log('Result: ', that.InitialTimestamps);
+                that.InitialTimestamps = filterOutlier(that.InitialTimestamps);
+                console.log('Filtered result: ',that.InitialTimestamps);
+                // that.runtime_one_command = that.runtime_one_command / (that.numberOfInitialTimestamps - that.numberOfVolatileTimestamps);
+                that.runtime_one_command = that.InitialTimestamps.reduce((a,b) => a+b, 0) / that.InitialTimestamps.length;
+                console.log('Default delay: ', that.runtime_one_command, 'ms');
+            }
+        }
+
+        /* High outliers are anything beyond the 3rd quartile + 1.5 * the inter-quartile range (IQR)
+        *  Low outliers are anything beneath the 1st quartile - 1.5 * IQR
+        */
+        function filterOutlier(someArray) {
+
+            let values, q1, q3, iqr, maxValue, minValue;
+
+            values = someArray.slice().sort( (a, b) => a - b);//copy array fast and sort
+
+            if((values.length / 4) % 1 === 0){
+                q1 = 1/2 * (values[(values.length / 4)] + values[(values.length / 4) + 1]);
+                q3 = 1/2 * (values[(values.length * (3 / 4))] + values[(values.length * (3 / 4)) + 1]);
+            } else {
+                q1 = values[Math.floor(values.length / 4 + 1)];
+                q3 = values[Math.ceil(values.length * (3 / 4) + 1)];
+            }
+
+            iqr = q3 - q1;
+            maxValue = q3 + iqr * 1.5;
+            minValue = q1 - iqr * 1.5;
+
+            return values.filter((x) => (x >= minValue) && (x <= maxValue));
+        }
+
+        function handleTimestamp(data) {
+            if (that.isFirstPeer) {
+                let overhead = Math.round((new Date()).getTime() - data.timestamp - that.runtime_one_command);
+                // console.log('Peer one got a overhead:', overhead, 'with number of peers', data.peerCount);
+                that.counter++;
+
+                if ((data.peerCount % that.peerModulo) === 0) {
+                    if(that.counter === 1)
+                        console.log('Starting test series with ', data.peerCount, ' Peers');
+                    if (that.timestamps[data.peerCount] === undefined)
+                        that.timestamps[data.peerCount] = [];
+                    if (that.counter > that.numberOfVolatileTimestamps && that.counter <= that.numberOfMeasurements + that.numberOfVolatileTimestamps)
+                        that.timestamps[data.peerCount].push(overhead);
+                    if(that.counter === that.numberOfMeasurements + that.numberOfVolatileTimestamps + 1){
+                        console.log('Current test series: ',that.timestamps[data.peerCount]);
+                        console.log('Sorted test series: ',that.timestamps[data.peerCount].concat().sort((a,b) => a - b));
+                        console.log('Filtered test series: ', filterOutlier(that.timestamps[data.peerCount]).concat());
+                    }
+                }
+                else {
+                    that.counter = 0;
+                }
+            }
+        }
+
+        function handleShowResults() {
+            if (that.isFirstPeer) {
+                let keys = Object.keys(that.timestamps);
+                let sortedData = {};
+                keys.forEach((key) => {
+                    sortedData[key] = that.timestamps[key].concat().sort((a,b) => a - b);
+                });
+                let filteredData = {};
+                keys.forEach((key) => {
+                    filteredData[key] = filterOutlier(that.timestamps[key]).concat();
+                });
+                console.log('Results: ', that.timestamps);
+                console.log('Sorted results: ', sortedData);
+                console.log('Filtered and sorted results: ', filteredData);
+
+                let averages = keys.map((key) => {
+                    return that.timestamps[key].reduce((sum, curr) => sum + curr, 0) / that.timestamps[key].length;
+                });
+                let filteredAverages = keys.map((key) => {
+                    return filteredData[key].reduce((sum, curr) => sum + curr, 0) / filteredData[key].length;
+                });
+                let extendedData = keys.map((key) => {
+                    let average = that.timestamps[key].reduce((sum, curr) => sum + curr, 0) / that.timestamps[key].length;
+                    let variance = that.timestamps[key].reduce((sum, curr) => sum + Math.pow(curr - average,2), 0) / that.timestamps[key].length;
+                    let deviation = Math.sqrt(variance);
+                    let average2 = filteredData[key].reduce((sum, curr) => sum + curr, 0) / filteredData[key].length;
+                    let variance2 = filteredData[key].reduce((sum, curr) => sum + Math.pow(curr - average,2), 0) / filteredData[key].length;
+                    let deviation2 = Math.sqrt(variance);
+                    return {
+                        'peers': key,
+                        'unfiltered': {
+                            'average': average,
+                            'variance': variance,
+                            'deviation': deviation,
+                            'data': that.timestamps[key]
+                        },
+                        'filtered': {
+                            'average': average2,
+                            'variance': variance2,
+                            'deviation': deviation2,
+                            'data': filteredData[key]
+                        }};
+                });
+                console.log(extendedData);
+
+                let ctx = document.getElementById('myChart').getContext('2d');
+                let myChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: keys,
+                        datasets: [{
+                            label: 'not filtered',
+                            fill: false,
+                            backgroundColor: '#00FF00',
+                            borderColor: '#00FF00',
+                            data: averages
+                        },{
+                            label: 'filtered',
+                            fill: false,
+                            backgroundColor: '#FF0000',
+                            borderColor: '#FF0000',
+                            data: filteredAverages
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        tooltips: {
+                            mode: 'index',
+                            intersect: false,
+                        },
+                        hover: {
+                            mode: 'nearest',
+                            intersect: true
+                        },
+                        scales: {
+                            yAxes: [{
+                                ticks: {
+                                    beginAtZero:true
+                                },
+                                display: true,
+                                scaleLabel: {
+                                    display: true,
+                                    labelString: 'Time in ms'
+                                }
+                            }],
+                            xAxes: [{
+                                display: true,
+                                scaleLabel: {
+                                    display: true,
+                                    labelString: '# of Peers'
+                                }
+                            }],
+                        }
+                    }
+                });
+            }
+        }
+
 
         //******** Media Codec specific methods (like Opus) ********
 
@@ -921,6 +1138,12 @@ class presentationBroadcast extends React.Component {
         document.body.removeChild(toCopy);
     }
 
+    stopSendingTimestamps() {
+        console.log('Now ending sending timestamps');
+        clearInterval(this.intervallId);
+        this.sendRTCMessage('showResults');
+    }
+
     showQRCode() {
         swal({
             titleText: 'Share this Room',
@@ -993,7 +1216,7 @@ class presentationBroadcast extends React.Component {
           <Grid celled='internally' stackable columns={2}>
             <Grid.Row>
               <Grid.Column width={13}>
-                <iframe id="slidewikiPresentation" src={this.iframesrc}
+                <iframe id="slidewikiPresentation" src=""
                 height={height*0.78 + 'px'} width="100%" frameBorder="0" style={{border: 0}}></iframe>
               </Grid.Column>
               <Grid.Column width={3} style={{'overflowY': 'auto', 'whiteSpace': 'nowrap', 'maxHeight': height*0.78 + 'px'}}>
@@ -1024,11 +1247,11 @@ class presentationBroadcast extends React.Component {
                     sendRTCMessage={this.sendRTCMessage}
                     showInviteModal={this.showInviteModal}
                     subtitle={this.state.subtitle} />
+                {this.isFirstPeer ? (<canvas id="myChart" width="200" height="100"></canvas>) : ('')}
               </Grid.Column>
               <Grid.Column width={3}>
                 <Button.Group vertical fluid>
                   {/*<a href={this.iframesrc.toLowerCase().replace('presentation','deck')} target="_blank"><Button content='Add comment to deck' labelPosition='right' icon='comment' primary/></a>{/*TODO open up the right functionality*/}*/}
-                  <a href={this.iframesrc.toLowerCase().split('presentation')[0] + 'deck/' + this.iframesrc.toLowerCase().split('presentation')[1].split('/')[1]} target="_blank"><Button content='Edit current deck' labelPosition='right' icon='pencil' primary style={{textAlign: 'left'}}/></a>{/*TODO open up the right functionality*/}
                   {this.isInitiator ? (<Button content="Ask audience to complete a task" labelPosition='right' icon='travel' primary onClick={this.audienceCompleteTask.bind(this)}/>) : ''}
                   {(this.isInitiator) ? (
                     <Button content='Share this presentation' labelPosition='right' icon='share alternate' primary onClick={this.copyURLToClipboard.bind(this)}/>
@@ -1038,6 +1261,7 @@ class presentationBroadcast extends React.Component {
                   {(this.state.showReopenModalButton) ? (
                     <Button content='Open Modal again' labelPosition='right' icon='check' color='green' onClick={this.showCompleteTaskModal.bind(this)}/>
                   ) : ''}
+                  {this.isInitiator ? (<Button content='Stop sending timestamps' labelPosition='right' icon='video play' color='red' onClick={this.stopSendingTimestamps.bind(this)}/>) : ('')}<br/>
                 </Button.Group>
               </Grid.Column>
             </Grid.Row>
