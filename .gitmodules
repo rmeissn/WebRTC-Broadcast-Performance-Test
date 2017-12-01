@@ -4,3 +4,6 @@
 [submodule "custom_modules/reveal.js"]
 	path = custom_modules/reveal.js
 	url = https://github.com/slidewiki/reveal.js.git
+[submodule "WebRTC-Signaling-Service"]
+	path = WebRTC-Signaling-Service
+	url = https://github.com/slidewiki/WebRTC-Signaling-Service.git
