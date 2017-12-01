@@ -1,5 +1,7 @@
 #!/bin/bash
 
+#this script is used to spawn peers on additonal machines that shall create peers for load reasons
+
 sleepSeconds=60
 url=http://localhost:3000/presentationbroadcast\?room\=webrtctesting\&presentation\=/Presentation/386-1/
 
