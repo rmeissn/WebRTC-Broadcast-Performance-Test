@@ -735,14 +735,23 @@ class presentationBroadcast extends React.Component {
                 if ((data.peerCount % that.peerModulo) === 0) {
                     if(that.counter === 1)
                         console.log('Starting test series with ', data.peerCount, ' Peers');
-                    if (that.timestamps[data.peerCount] === undefined)
-                        that.timestamps[data.peerCount] = [];
-                    if (that.counter > that.numberOfVolatileTimestamps && that.counter <= that.numberOfMeasurements + that.numberOfVolatileTimestamps)
-                        that.timestamps[data.peerCount].push(overhead);
+                    if (that.timestamps[data.peerCount] === undefined){
+                        that.timestamps[data.peerCount] = {};
+                        that.timestamps[data.peerCount].series = [];
+                        that.timestamps[data.peerCount].starttime = 0;
+                        that.timestamps[data.peerCount].endtime = 0;
+                    }
+                    if (that.counter > that.numberOfVolatileTimestamps && that.counter <= that.numberOfMeasurements + that.numberOfVolatileTimestamps){
+                        that.timestamps[data.peerCount].series.push(overhead);
+                        if(that.counter === that.numberOfVolatileTimestamps + 1 )
+                            that.timestamps[data.peerCount].starttime = data.timestamp;
+                        if(that.counter === that.numberOfMeasurements + that.numberOfVolatileTimestamps)
+                            that.timestamps[data.peerCount].endtime = data.timestamp;
+                    }
                     if(that.counter === that.numberOfMeasurements + that.numberOfVolatileTimestamps + 1){
-                        console.log('Current test series: ',that.timestamps[data.peerCount]);
-                        console.log('Sorted test series: ',that.timestamps[data.peerCount].concat().sort((a,b) => a - b));
-                        console.log('Filtered test series: ', filterOutlier(that.timestamps[data.peerCount]).concat());
+                        console.log('Current test series: ',that.timestamps[data.peerCount].series);
+                        console.log('Sorted test series: ',that.timestamps[data.peerCount].series.concat().sort((a,b) => a - b));
+                        console.log('Filtered test series: ', filterOutlier(that.timestamps[data.peerCount].series).concat());
                     }
                 }
                 else {
@@ -756,36 +765,38 @@ class presentationBroadcast extends React.Component {
                 let keys = Object.keys(that.timestamps);
                 let sortedData = {};
                 keys.forEach((key) => {
-                    sortedData[key] = that.timestamps[key].concat().sort((a,b) => a - b);
+                    sortedData[key] = that.timestamps[key].series.concat().sort((a,b) => a - b);
                 });
                 let filteredData = {};
                 keys.forEach((key) => {
-                    filteredData[key] = filterOutlier(that.timestamps[key]).concat();
+                    filteredData[key] = filterOutlier(that.timestamps[key].series).concat();
                 });
                 console.log('Results: ', that.timestamps);
                 console.log('Sorted results: ', sortedData);
                 console.log('Filtered and sorted results: ', filteredData);
 
                 let averages = keys.map((key) => {
-                    return that.timestamps[key].reduce((sum, curr) => sum + curr, 0) / that.timestamps[key].length;
+                    return that.timestamps[key].series.reduce((sum, curr) => sum + curr, 0) / that.timestamps[key].series.length;
                 });
                 let filteredAverages = keys.map((key) => {
                     return filteredData[key].reduce((sum, curr) => sum + curr, 0) / filteredData[key].length;
                 });
                 let extendedData = keys.map((key) => {
-                    let average = that.timestamps[key].reduce((sum, curr) => sum + curr, 0) / that.timestamps[key].length;
-                    let variance = that.timestamps[key].reduce((sum, curr) => sum + Math.pow(curr - average,2), 0) / that.timestamps[key].length;
+                    let average = that.timestamps[key].series.reduce((sum, curr) => sum + curr, 0) / that.timestamps[key].series.length;
+                    let variance = that.timestamps[key].series.reduce((sum, curr) => sum + Math.pow(curr - average,2), 0) / that.timestamps[key].series.length;
                     let deviation = Math.sqrt(variance);
                     let average2 = filteredData[key].reduce((sum, curr) => sum + curr, 0) / filteredData[key].length;
                     let variance2 = filteredData[key].reduce((sum, curr) => sum + Math.pow(curr - average,2), 0) / filteredData[key].length;
                     let deviation2 = Math.sqrt(variance);
                     return {
                         'peers': key,
+                        'starttime': that.timestamps[key].starttime,
+                        'endtime': that.timestamps[key].endtime,
                         'unfiltered': {
                             'average': average,
                             'variance': variance,
                             'deviation': deviation,
-                            'data': that.timestamps[key]
+                            'data': that.timestamps[key].series
                         },
                         'filtered': {
                             'average': average2,

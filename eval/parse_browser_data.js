@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 'use strict';
-//
+//export in browser like: Export logged data to global variable (temp1) + JSON.stringify(temp1)
 
 if(process.argv.length !== 3){
     console.log('too few/many arguments, use as "./parse_browser_data.js browser_data.json > browser_data.csv"');
