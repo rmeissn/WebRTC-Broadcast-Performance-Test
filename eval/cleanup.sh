@@ -1,3 +1,3 @@
 #!/bin/bash
 
-rm ./*.csv ./*.js ./*.bin
+rm ./*.csv ./*.bin
