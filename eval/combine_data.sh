@@ -1,4 +1,5 @@
 #!/bin/zsh
+#zsh is needed for floating point calculations, e.g. ((idle = 100 - idle))
 
 # to pretty print: ./combine_data.sh combined_converted.csv browser_data.csv| column -s";" -t
 
@@ -11,7 +12,7 @@ fi
 i=0;
 while read p; do
   if [ "$i" -eq "0" ]; then
-    echo "$p;cpu_usage;txkb/s;rxkb/s;kbmemfree;kbmemused"
+    echo "$p;%cpu_usage;txkb/s;rxkb/s;kbmemfree;kbmemused"
     i=$((i + 1))
     continue
   fi
@@ -26,3 +27,5 @@ while read p; do
   i=$((i + 1))
   echo "$p;$idle;$tx;$rx;$memfree;$memused"
 done < $2
+
+rm $1 $2

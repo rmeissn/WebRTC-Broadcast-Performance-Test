@@ -12,7 +12,7 @@ let fs = require('fs');
 let text = fs.readFileSync(filename).toString();
 let obj = JSON.parse(text);
 
-console.log('peers;starttime;endtime;avarage;variance;deviation');
+console.log('peers;starttime;endtime;avarage_delay;variance;deviation');
 obj.forEach((obj) => {
     // add the fields which you want to extract here:
     let tolog = [

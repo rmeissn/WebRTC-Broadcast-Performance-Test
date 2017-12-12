@@ -6,4 +6,4 @@ if [ "$#" != "1" ]; then
   exit 1
 fi
 
-sar -o test_$1.bin 1
+2>/dev/null 1>&2 sar -o test_$1.bin 1

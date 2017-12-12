@@ -792,6 +792,7 @@ class presentationBroadcast extends React.Component {
                         'peers': key,
                         'starttime': that.timestamps[key].starttime,
                         'endtime': that.timestamps[key].endtime,
+                        'defaultruntime': that.runtime_one_command,//this is only measured once in the beginning, so it's the same for all peer objects
                         'unfiltered': {
                             'average': average,
                             'variance': variance,
@@ -857,6 +858,16 @@ class presentationBroadcast extends React.Component {
                         }
                     }
                 });
+                function download(filename, text) {
+                    let element = document.createElement('a');
+                    element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+                    element.setAttribute('download', filename);
+                    element.style.display = 'none';
+                    document.body.appendChild(element);
+                    element.click();
+                    document.body.removeChild(element);
+                }
+                download('browser_data.json', JSON.stringify(extendedData));
             }
         }
 

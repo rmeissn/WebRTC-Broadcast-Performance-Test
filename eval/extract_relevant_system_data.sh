@@ -25,3 +25,8 @@ join --header -t\; cpu_filtered.csv network_filtered.csv | join --header -t\; - 
 awk -f time_conversion.awk combined.csv > combined_converted.csv
 #exchange commas for dots
 sed -i -e 's/,/\./g' combined_converted.csv
+
+rm combined.csv cpu.csv network.csv memory.csv cpu_filtered.csv network_filtered.csv memory_filtered.csv
+
+#cpu idle vs user+system+nice+iowait
+#sadf -d test_1.bin -- -u | sed -e 's/,/\./g' | sed -e 's/# //g' | q-text-as-data --delimiter=";" -H "select \"%user\" + \"%nice\" + \"%system\" + \"%iowait\" as notidle,\"%idle\" from -" | q-text-as-data --delimiter=";" "select c1,c2,c1+c2 from -" | q-text-as-data --delimiter=";" "select * from - where c3 < 100" | column -s";" -t
