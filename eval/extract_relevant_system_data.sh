@@ -1,8 +1,8 @@
 #!/bin/bash
 
 if [ "$#" != "2" ]; then
-  echo "Too few/much arguments! Use like ./extract_relevant_data.sh INPUT_FILE_NAME IFACE_NAME"
-  echo "e.g. './extract_relevant_data.sh test_1.bin eth0'"
+  echo "Too few/much arguments! Use like ./extract_relevant_system_data.sh INPUT_FILE_NAME IFACE_NAME"
+  echo "e.g. './extract_relevant_system_data.sh test_1.bin eth0'"
   exit 1
 fi
 
@@ -20,3 +20,8 @@ cut --delimiter=";" -f 3,4,6 memory.csv > memory_filtered.csv
 
 #join files
 join --header -t\; cpu_filtered.csv network_filtered.csv | join --header -t\; - memory_filtered.csv > combined.csv
+
+#convert timestamps
+awk -f time_conversion.awk combined.csv > combined_converted.csv
+#exchange commas for dots
+sed -i -e 's/,/\./g' combined_converted.csv

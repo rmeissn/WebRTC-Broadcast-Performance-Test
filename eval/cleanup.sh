@@ -1,3 +1,6 @@
 #!/bin/bash
 
-rm ./*.csv ./*.bin
+rm ./*.csv
+echo "Delete test data too [ENTER/CTRL+C]:"
+read tmp
+rm ./*.bin ./*.json
