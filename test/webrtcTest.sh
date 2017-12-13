@@ -23,12 +23,23 @@ google-chrome $url &
 google-chrome $url &
 google-chrome $url &
 google-chrome $url &
+google-chrome $url &
+google-chrome $url &
+google-chrome $url &
+google-chrome $url &
+google-chrome $url &
 
 echo "sleep $sleepSeconds seconds"
 sleep $sleepSeconds
 
 while :
 do
+  google-chrome $url &
+  google-chrome $url &
+  google-chrome $url &
+  google-chrome $url &
+  google-chrome $url &
+
   google-chrome $url &
   google-chrome $url &
   google-chrome $url &
