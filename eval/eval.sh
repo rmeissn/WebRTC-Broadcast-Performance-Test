@@ -11,3 +11,8 @@ fi
 ./parse_browser_data.js $3 > browser_data.csv
 ./combine_data.sh combined_converted.csv browser_data.csv > result.csv
 cat result.csv | column -s";" -t
+
+echo ""
+echo "Creating plot..."
+./plot.gp
+echo "Plot created as plot.png"
