@@ -214,10 +214,15 @@ class presentationBroadcast extends React.Component {
                 }
             } else { //broadcast from initiator
                 // console.log('Broadcasting message to peers');
-                for (let i in that.pcs) {
-                    if (that.pcs[i].dataChannel)
+                let tmp = [];
+                for (let key in that.pcs) {
+                    tmp.push(key);
+                }
+                for (let i = tmp.length-1; i>=0; i--) {
+                    let index = tmp[i];
+                    if (that.pcs[index].dataChannel)
                         try {
-                            that.pcs[i].dataChannel.send(message);
+                            that.pcs[index].dataChannel.send(message);
                         } catch (e){
                             console.log('SendRTCMessage error: ', e);
                         }
@@ -787,7 +792,7 @@ class presentationBroadcast extends React.Component {
                     let deviation = Math.sqrt(variance);
                     let average2 = filteredData[key].reduce((sum, curr) => sum + curr, 0) / filteredData[key].length;
                     let variance2 = filteredData[key].reduce((sum, curr) => sum + Math.pow(curr - average,2), 0) / filteredData[key].length;
-                    let deviation2 = Math.sqrt(variance);
+                    let deviation2 = Math.sqrt(variance2);
                     return {
                         'peers': key,
                         'starttime': that.timestamps[key].starttime,
