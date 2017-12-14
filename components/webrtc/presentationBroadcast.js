@@ -39,7 +39,7 @@ class presentationBroadcast extends React.Component {
         this.peerNumber = -1;//used for peernames, will be incremented on each new peer
 
         //******** Testing variables ********
-        this.isAudioEnabled = false;
+        this.isAudioEnabled = true;
         this.numberOfInitialTimestamps = 70;
         this.numberOfVolatileTimestamps = 20;
         this.numberOfMeasurements = 100;
