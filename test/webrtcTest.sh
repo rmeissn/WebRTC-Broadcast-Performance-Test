@@ -20,14 +20,6 @@ sleep 12
 echo "Now starting tabs in groups"
 # starting more peers to reach groups modulo 5 or 10 (peers including the first one)
 google-chrome $url &
-google-chrome $url &
-google-chrome $url &
-google-chrome $url &
-google-chrome $url &
-google-chrome $url &
-google-chrome $url &
-google-chrome $url &
-google-chrome $url &
 
 echo "sleep $sleepSeconds seconds"
 sleep $sleepSeconds
@@ -35,15 +27,7 @@ sleep $sleepSeconds
 while :
 do
   google-chrome $url &
-  google-chrome $url &
-  google-chrome $url &
-  google-chrome $url &
-  google-chrome $url &
-
-  google-chrome $url &
-  google-chrome $url &
-  google-chrome $url &
-  google-chrome $url &
+  sleep 2
   google-chrome $url &
 
   echo "sleep $sleepSeconds seconds"

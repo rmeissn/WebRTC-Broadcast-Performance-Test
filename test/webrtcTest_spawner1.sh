@@ -7,11 +7,7 @@ url=http://localhost:3000/presentationbroadcast\?room\=webrtctesting\&presentati
 
 echo "Starting first group of tabs"
 
-for i in `seq 1 9`;
-do
-  google-chrome $url &
-  sleep 1
-done
+google-chrome $url &
 
 echo "sleep $sleepSeconds seconds"
 sleep $sleepSeconds
@@ -20,11 +16,9 @@ echo "Starting next group of tabs"
 
 while :
 do
-  for i in `seq 1 10`;
-  do
-    google-chrome $url &
-    sleep 1
-  done
+  google-chrome $url &
+  sleep 2
+  google-chrome $url &
 
   echo "sleep $sleepSeconds seconds"
   sleep $sleepSeconds

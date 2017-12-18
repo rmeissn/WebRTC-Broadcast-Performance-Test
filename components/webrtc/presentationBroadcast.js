@@ -39,7 +39,7 @@ class presentationBroadcast extends React.Component {
         this.peerNumber = -1;//used for peernames, will be incremented on each new peer
 
         //******** Testing variables ********
-        this.isAudioEnabled = false;
+        this.isAudioEnabled = true;
         this.numberOfInitialTimestamps = 70;
         this.numberOfVolatileTimestamps = 20;
         this.numberOfMeasurements = 100;
@@ -49,7 +49,7 @@ class presentationBroadcast extends React.Component {
         this.InitialTimestamps = [];
         this.isFirstPeer = false;
         this.intervallId = 0;
-        this.peerModulo = 10;
+        this.peerModulo = 2;
         this.counter = 0;
     }
 
@@ -102,11 +102,11 @@ class presentationBroadcast extends React.Component {
             if (that.isAudioEnabled) {
                 requestStreams({
                     audio: true,
-                    // video: {
-                    //   width: { min: 480, ideal: 720, max: 1920 },
-                    //   height: { min: 360, ideal: 540, max: 1080 },
-                    //   facingMode: "user"
-                    // }
+                    video: {
+                        width: { min: 480, ideal: 720, max: 1920 },
+                        height: { min: 360, ideal: 540, max: 1080 },
+                        facingMode: 'user'
+                    }
                 });
             } else
               gotStream('');
@@ -537,10 +537,18 @@ class presentationBroadcast extends React.Component {
         }
 
         function handleRemoteStreamAdded(event) {
+            console.log(event);
             if (that.isInitiator === false) {
-                $('#media').append('<audio class="remoteAudio" autoplay></audio>');
-                let remoteAudios = $('.remoteAudio');
-                remoteAudios[remoteAudios.length - 1].srcObject = event.streams[0];
+                if(event.track.kind === 'video'){
+                    $('#media').append('<video class="remoteVideo" autoplay></video>');
+                    let remoteVideos = $('.remoteVideo');
+                    remoteVideos[remoteVideos.length - 1].srcObject = event.streams[0];
+                }
+                if(event.track.kind === 'audio'){
+                    $('#media').append('<audio class="remoteAudio" autoplay></audio>');
+                    let remoteAudios = $('.remoteAudio');
+                    remoteAudios[remoteAudios.length - 1].srcObject = event.streams[0];
+                }
             }
         }
 
@@ -1269,7 +1277,7 @@ class presentationBroadcast extends React.Component {
                       content={peernames}
                     /></p>) : <p>{this.state.roleText}</p>}
                 </h4>
-                <div id="media" style={{'display': 'none'}}></div>
+                <div id="media"></div>
                 <SpeechRecognition ref="speechRecognition"
                     isInitiator={this.isInitiator}
                     sendRTCMessage={this.sendRTCMessage}
