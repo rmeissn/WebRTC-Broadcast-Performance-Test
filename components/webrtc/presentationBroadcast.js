@@ -214,15 +214,10 @@ class presentationBroadcast extends React.Component {
                 }
             } else { //broadcast from initiator
                 // console.log('Broadcasting message to peers');
-                let tmp = [];
-                for (let key in that.pcs) {
-                    tmp.push(key);
-                }
-                for (let i = tmp.length-1; i>=0; i--) {
-                    let index = tmp[i];
-                    if (that.pcs[index].dataChannel)
+                for (let i in that.pcs) {
+                    if (that.pcs[i].dataChannel)
                         try {
-                            that.pcs[index].dataChannel.send(message);
+                            that.pcs[i].dataChannel.send(message);
                         } catch (e){
                             console.log('SendRTCMessage error: ', e);
                         }
