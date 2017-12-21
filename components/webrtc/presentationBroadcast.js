@@ -538,9 +538,9 @@ class presentationBroadcast extends React.Component {
 
         function handleRemoteStreamAdded(event) {
             if (that.isInitiator === false) {
-                $('#media').append('<audio class="remoteAudio" autoplay></audio>');
-                let remoteAudios = $('.remoteAudio');
-                remoteAudios[remoteAudios.length - 1].srcObject = event.streams[0];
+                //$('#media').append('<audio class="remoteAudio" autoplay></audio>');
+                //let remoteAudios = $('.remoteAudio');
+                //remoteAudios[remoteAudios.length - 1].srcObject = event.streams[0];
             }
         }
 
