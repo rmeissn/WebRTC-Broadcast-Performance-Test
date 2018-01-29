@@ -1,9 +1,0 @@
-[submodule "custom_modules/custom-semantic-ui"]
-	path = custom_modules/custom-semantic-ui
-	url = https://github.com/slidewiki/custom-semantic-ui.git
-[submodule "custom_modules/reveal.js"]
-	path = custom_modules/reveal.js
-	url = https://github.com/slidewiki/reveal.js.git
-[submodule "WebRTC-Signaling-Service"]
-	path = WebRTC-Signaling-Service
-	url = https://github.com/slidewiki/WebRTC-Signaling-Service.git
